@@ -11,7 +11,7 @@ import Mission from "./components/Mission";
 import ScrollProgress from "./components/ScrollProgress";
 import zeraImage from "./assets/zera.png";
 import Contact from "./components/Contact";
-
+import Welcome from "./pages/Welcome";
 const particles = [
   { left: 8, top: 20, duration: 4, delay: 0.2 },
   { left: 18, top: 65, duration: 5, delay: 1 },
@@ -30,7 +30,8 @@ const particles = [
   { left: 96, top: 15, duration: 6, delay: 0.1 },
 ];
 
-function App() {
+function Home() {
+  
   const [showIntro, setShowIntro] = useState(true);
 
   // Show the story first
@@ -395,6 +396,15 @@ function App() {
       <Chatbot />
     </div>
   );
+}
+function App() {
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  if (showWelcome) {
+    return <Welcome onBegin={() => setShowWelcome(false)} />;
+  }
+
+  return <Home />;
 }
 
 export default App;
