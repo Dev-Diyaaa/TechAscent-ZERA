@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaPaperPlane, FaTimes, FaRobot } from "react-icons/fa";
-import axios from "axios";
+
 import zeraImage from "../assets/zera.png";
 import emailjs from "@emailjs/browser";
 
@@ -169,160 +169,93 @@ const showZeraReply = (text, delay = 700) => {
     setIsTyping(false);
   }, delay);
 };
-  const sendMessage = async () => {
-    const trimmedInput = input.trim();
+ const sendMessage = async () => {
+  const trimmedInput = input.trim();
 
-    if (!trimmedInput || submitted || isSubmitting || isTyping) return;
+  if (!trimmedInput || submitted || isSubmitting || isTyping) return;
 
-    // Email validation
-    if (currentQuestion.field === "email") {
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // Email validation
+  if (currentQuestion.field === "email") {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-      if (!emailPattern.test(trimmedInput)) {
-        setMessages((previous) => [
-          ...previous,
-          {
-            sender: "zera",
-            text: "Please enter a valid email address so I can reach you.",
-          },
-        ]);
-
-        return;
-      }
+    if (!emailPattern.test(trimmedInput)) {
+      setMessages((previous) => [
+        ...previous,
+        {
+          sender: "zera",
+          text: "Please enter a valid email address so I can reach you.",
+        },
+      ]);
+      return;
     }
+  }
 
-    // Age validation
-    if (currentQuestion.field === "age") {
-      const age = Number(trimmedInput);
+  // Age validation
+  if (currentQuestion.field === "age") {
+    const age = Number(trimmedInput);
 
-      if (!Number.isInteger(age) || age < 1 || age > 120) {
-        setMessages((previous) => [
-          ...previous,
-          {
-            sender: "zera",
-            text: "Please enter a valid age.",
-          },
-        ]);
-
-        return;
-      }
+    if (!Number.isInteger(age) || age < 1 || age > 120) {
+      setMessages((previous) => [
+        ...previous,
+        {
+          sender: "zera",
+          text: "Please enter a valid age.",
+        },
+      ]);
+      return;
     }
+  }
 
-    const updatedData = {
-      ...userData,
-      [currentQuestion.field]: trimmedInput,
-    };
+  const updatedData = {
+    ...userData,
+    [currentQuestion.field]: trimmedInput,
+  };
 
-    setUserData(updatedData);
+  setUserData(updatedData);
 
-    // Display visitor's answer
-    setMessages((previous) => [
-      ...previous,
-      {
-        sender: "visitor",
-        text: trimmedInput,
-      },
-    ]);
-
-    if (step < questions.length - 1) {
-      setInput("");
-    }
-
-   // Ask next question naturally
-if (step < questions.length - 1) {
-  const nextStep = step + 1;
-  const nextQuestion = questions[nextStep].message;
-
-  const naturalReply = getNaturalResponse(
-    currentQuestion.field,
-    trimmedInput,
-    nextQuestion
-  );
-
-  showZeraReply(naturalReply);
-
-  setStep(nextStep);
-}else {
-      // Submit complete request
-      setIsSubmitting(true);
-      setSubmitError("");
-
-     try {
+  // Display visitor's answer
   setMessages((previous) => [
     ...previous,
     {
-      sender: "zera",
-      text: "I'm securely submitting your request now...",
+      sender: "visitor",
+      text: trimmedInput,
     },
   ]);
 
-  console.log("User data:", updatedData);
+  if (step < questions.length - 1) {
+    setInput("");
 
-  // Send data to backend
-  const response = await axios.post(
-    `${import.meta.env.VITE_API_URL}/api/contact`,
-    updatedData
-  );
+    const nextStep = step + 1;
+    const nextQuestion = questions[nextStep].message;
 
-  console.log("Backend response:", response.data);
+    const naturalReply = getNaturalResponse(
+      currentQuestion.field,
+      trimmedInput,
+      nextQuestion
+    );
 
-  // Send email through EmailJS
-  const emailResponse = await emailjs.send(
-    import.meta.env.VITE_EMAILJS_SERVICE_ID,
-    import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-    {
-      name: updatedData.name,
-      age: updatedData.age,
-      location: updatedData.location,
-      email: updatedData.email,
-      grievance: updatedData.grievance,
-    },
-    {
-      publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-    }
-  );
+    showZeraReply(naturalReply);
+    setStep(nextStep);
+    return;
+  }
 
-  console.log("EmailJS response:", emailResponse);
+  // Final submission
+  setIsSubmitting(true);
+  setSubmitError("");
 
-  setIsSubmitting(false);
-
-  setTimeout(() => {
+  try {
     setMessages((previous) => [
       ...previous,
       {
         sender: "zera",
-        text: `Thank you, ${updatedData.name}. Your request has been submitted successfully. Someone will review it soon.`,
+        text: "I'm securely submitting your request now...",
       },
     ]);
 
-    setSubmitted(true);
-  }, 500);
-} catch (error) {
-  console.error("Submission error:", error);
-  console.error("Error response:", error.response?.data);
+    console.log("Submitting data:", updatedData);
 
-  setIsSubmitting(false);
-  setSubmitError(
-    "I couldn't submit your request right now. Please try again later."
-  );
-
-  setInput(trimmedInput);
-
-  setMessages((previous) => [
-    ...previous,
-    {
-      sender: "zera",
-      text: "I couldn't submit your request right now. Please try again later.",
-    },
-  ]);
-}
-
-       await axios.post(
-  `${import.meta.env.VITE_API_URL}/api/contact`,
-  updatedData
-);
-
-await emailjs.send(
+    // Send data to Flask backend
+    const emailResponse = await emailjs.send(
   import.meta.env.VITE_EMAILJS_SERVICE_ID,
   import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
   {
@@ -332,39 +265,46 @@ await emailjs.send(
     email: updatedData.email,
     grievance: updatedData.grievance,
   },
-  import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+  {
+    publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+  }
 );
 
-        setIsSubmitting(false);
+console.log("EmailJS response:", emailResponse);
+    
 
-        setTimeout(() => {
-          setMessages((previous) => [
-            ...previous,
-            {
-              sender: "zera",
-              text: `Thank you, ${updatedData.name}. Your request has been submitted successfully. Someone will review it soon.`,
-            },
-          ]);
+    setIsSubmitting(false);
 
-          setSubmitted(true);
-        }, 500);
-      } catch (error) {
-        console.error("Submission error:", error);
+    setTimeout(() => {
+      setMessages((previous) => [
+        ...previous,
+        {
+          sender: "zera",
+          text: `Thank you, ${updatedData.name}. Your request has been submitted successfully. Someone will review it soon.`,
+        },
+      ]);
 
-        setIsSubmitting(false);
-        setSubmitError("I couldn't submit your request right now. Please try again later.");
-        setInput(trimmedInput);
+      setSubmitted(true);
+    }, 500);
+  } catch (error) {
+    console.error("Submission error:", error);
+    console.error("Error response:", error.response?.data);
 
-        setMessages((previous) => [
-          ...previous,
-          {
-            sender: "zera",
-            text: "I couldn't submit your request right now. Please try again later.",
-          },
-        ]);
-      }
-    }
-  };
+    setIsSubmitting(false);
+    setSubmitError(
+      "I couldn't submit your request right now. Please try again later."
+    );
+    setInput(trimmedInput);
+
+    setMessages((previous) => [
+      ...previous,
+      {
+        sender: "zera",
+        text: "I couldn't submit your request right now. Please try again later.",
+      },
+    ]);
+  }
+};
 
   const resetChatbot = () => {
     setStep(0);
