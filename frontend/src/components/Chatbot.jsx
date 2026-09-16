@@ -42,6 +42,7 @@ export default function Chatbot() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -137,11 +138,40 @@ export default function Chatbot() {
       sendMessage();
     }
   };
+  const getNaturalResponse = (field, value, nextQuestion) => {
+  const responses = {
+    name: `Nice to meet you, ${value}. I'm here to listen and understand. ${nextQuestion}`,
 
+    age: `Thank you for sharing that. Your concern matters, and I'll make sure it's recorded properly. ${nextQuestion}`,
+
+    location: `Got it. Thank you for letting me know where you're reaching out from. ${nextQuestion}`,
+
+    email: `Thank you. I'll use your email only for following up regarding your request. ${nextQuestion}`,
+
+    grievance: `Thank you for trusting me with your concern. I've noted what you've shared. I'll make sure your request is submitted for review.`,
+  };
+
+  return responses[field];
+};
+const showZeraReply = (text, delay = 700) => {
+  setIsTyping(true);
+
+  setTimeout(() => {
+    setMessages((previous) => [
+      ...previous,
+      {
+        sender: "zera",
+        text,
+      },
+    ]);
+
+    setIsTyping(false);
+  }, delay);
+};
   const sendMessage = async () => {
     const trimmedInput = input.trim();
 
-    if (!trimmedInput || submitted || isSubmitting) return;
+    if (!trimmedInput || submitted || isSubmitting || isTyping) return;
 
     // Email validation
     if (currentQuestion.field === "email") {
@@ -197,22 +227,21 @@ export default function Chatbot() {
       setInput("");
     }
 
-    // Ask next question
-    if (step < questions.length - 1) {
-      const nextStep = step + 1;
+   // Ask next question naturally
+if (step < questions.length - 1) {
+  const nextStep = step + 1;
+  const nextQuestion = questions[nextStep].message;
 
-      setTimeout(() => {
-        setMessages((previous) => [
-          ...previous,
-          {
-            sender: "zera",
-            text: questions[nextStep].message,
-          },
-        ]);
-      }, 500);
+  const naturalReply = getNaturalResponse(
+    currentQuestion.field,
+    trimmedInput,
+    nextQuestion
+  );
 
-      setStep(nextStep);
-    } else {
+  showZeraReply(naturalReply);
+
+  setStep(nextStep);
+}else {
       // Submit complete request
       setIsSubmitting(true);
       setSubmitError("");
@@ -408,13 +437,31 @@ export default function Chatbot() {
               </div>
             </motion.div>
           ))}
-
+          
           {messages.length === 0 && (
             <div className="flex h-full items-center justify-center text-center text-gray-500">
               <p>Establishing connection...</p>
             </div>
           )}
+{isTyping && (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="flex justify-start"
+  >
+    <div className="rounded-2xl rounded-bl-sm border border-purple-500/20 bg-[#1a1029] px-4 py-3 text-sm text-gray-400">
+      <div className="flex items-center gap-1">
+        <span>ZERA is typing</span>
 
+        <span className="flex gap-1">
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:150ms]" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:300ms]" />
+        </span>
+      </div>
+    </div>
+  </motion.div>
+)}
           <div ref={messagesEndRef} />
         </div>
 
@@ -484,7 +531,7 @@ export default function Chatbot() {
 
                   <button
                     onClick={sendMessage}
-                    disabled={!input.trim()}
+                    disabled={!input.trim() || isTyping}
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <FaPaperPlane className="text-sm" />
