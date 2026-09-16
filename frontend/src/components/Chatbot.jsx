@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaPaperPlane, FaTimes, FaRobot } from "react-icons/fa";
 import axios from "axios";
 import zeraImage from "../assets/zera.png";
+import emailjs from "@emailjs/browser";
 
 const questions = [
   {
@@ -246,19 +247,93 @@ if (step < questions.length - 1) {
       setIsSubmitting(true);
       setSubmitError("");
 
-      try {
-        setMessages((previous) => [
-          ...previous,
-          {
-            sender: "zera",
-            text: "I'm securely submitting your request now...",
-          },
-        ]);
+     try {
+  setMessages((previous) => [
+    ...previous,
+    {
+      sender: "zera",
+      text: "I'm securely submitting your request now...",
+    },
+  ]);
 
-        await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/contact`,
-          updatedData
-        );
+  console.log("User data:", updatedData);
+
+  // Send data to backend
+  const response = await axios.post(
+    `${import.meta.env.VITE_API_URL}/api/contact`,
+    updatedData
+  );
+
+  console.log("Backend response:", response.data);
+
+  // Send email through EmailJS
+  const emailResponse = await emailjs.send(
+    import.meta.env.VITE_EMAILJS_SERVICE_ID,
+    import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+    {
+      name: updatedData.name,
+      age: updatedData.age,
+      location: updatedData.location,
+      email: updatedData.email,
+      grievance: updatedData.grievance,
+    },
+    {
+      publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+    }
+  );
+
+  console.log("EmailJS response:", emailResponse);
+
+  setIsSubmitting(false);
+
+  setTimeout(() => {
+    setMessages((previous) => [
+      ...previous,
+      {
+        sender: "zera",
+        text: `Thank you, ${updatedData.name}. Your request has been submitted successfully. Someone will review it soon.`,
+      },
+    ]);
+
+    setSubmitted(true);
+  }, 500);
+} catch (error) {
+  console.error("Submission error:", error);
+  console.error("Error response:", error.response?.data);
+
+  setIsSubmitting(false);
+  setSubmitError(
+    "I couldn't submit your request right now. Please try again later."
+  );
+
+  setInput(trimmedInput);
+
+  setMessages((previous) => [
+    ...previous,
+    {
+      sender: "zera",
+      text: "I couldn't submit your request right now. Please try again later.",
+    },
+  ]);
+}
+
+       await axios.post(
+  `${import.meta.env.VITE_API_URL}/api/contact`,
+  updatedData
+);
+
+await emailjs.send(
+  import.meta.env.VITE_EMAILJS_SERVICE_ID,
+  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+  {
+    name: updatedData.name,
+    age: updatedData.age,
+    location: updatedData.location,
+    email: updatedData.email,
+    grievance: updatedData.grievance,
+  },
+  import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+);
 
         setIsSubmitting(false);
 
